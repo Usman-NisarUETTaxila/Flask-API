@@ -1,4 +1,4 @@
-from app import app, db
+from app import app, db, UserModel
 
 with app.app_context():
-    db.create_all()
+    print(UserModel.query.all())

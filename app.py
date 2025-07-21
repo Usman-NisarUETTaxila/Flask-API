@@ -7,7 +7,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///database.db'
 db = SQLAlchemy(app)
 api = Api(app)
 
-class User(db.Model):
+class UserModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, unique=True, nullable=False)
 
@@ -25,17 +25,48 @@ userFields = {
 class Users(Resource):
     @marshal_with(userFields)
     def get(self):
-        users = User.query.all()
+        users = UserModel.query.all()
         return users
     
     @marshal_with(userFields)
     def post(self):
         args = user_args.parse_args()
-        user = User(name=args["name"])
+        user = UserModel(name=args["name"])
         db.session.add(user)
         db.session.commit()
+        users = UserModel.query.all()
+        return users, 201
     
+class User(Resource):
+    @marshal_with(userFields)
+    def get(self, id):
+        user = UserModel.query.filter_by(id=id).first()
+        if not user:
+            abort(404, "User not found")
+        return user
+    
+    @marshal_with(userFields)
+    def patch(self, id):
+        args = user_args.parse_args()
+        user = UserModel.query.filter_by(id=id).first()
+        if not user:
+            abort(404, "User not found")
+        user.name = args["name"]
+        db.session.commit()
+        return user
+    
+    @marshal_with(userFields)
+    def delete(self, id):
+        user = UserModel.query.filter_by(id=id).first()
+        if not user:
+            abort(404, "User not found")
+        db.session.delete(user)
+        db.session.commit()
+        users = UserModel.query.all()
+        return users, 204
+        
 api.add_resource(Users, '/api/Users')
+api.add_resource(User, '/api/Users/<int:id>')
 
 @app.route('/')
 def home_page():
